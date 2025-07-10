@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일정 구글 캘린더에 추가하기</title>
+    <style>
+        /* CSS 스타일은 이전과 동일하게 유지 */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 20px; 
+            background-color: #f8f9fa; 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        h1 { 
+            color: #333; 
+            text-align: center; 
+            margin-bottom: 30px; 
+        }
+        .event-list { 
+            list-style: none; 
+            padding: 0; 
+        }
+        .event-item { 
+            background: white; 
+            border: 1px solid #e0e0e0; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+        }
+        .event-item h3 { 
+            margin-top: 0; 
+            color: #1a73e8; 
+            font-size: 1.3em; 
+        }
+        .event-item p { 
+            margin: 8px 0; 
+            color: #666; 
+        }
+        .add-calendar-btn { 
+            background-color: #4285F4; 
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px; 
+            font-weight: 500; 
+            margin-top: 10px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>📅 일정 구글 캘린더에 추가하기</h1>
+    
+    <ul class="event-list">
+        <li class="event-item">
+            <h3>🎉 쿠라운드 메이킹 교육 💡</h3>
+            <p>📅 2025년 7월 19일 (토)</p>
+            <p>⏰ 오전 10:00 ~ 13:30</p>
+            <p>📍 창업보육센터 2층 교육회의실</p>
+            <p>📢 태그팀 프로젝트를 위해서 ESP32 / 라즈베리파이 간단한 교육 할 예정 (자세한 것은 추후 공지) <br>⚠️ 13:30에는 서울로 출발해야 해서 무조건 저때 끝내야함.</p>
+            <button class="add-calendar-btn"
+                data-event-title="쿠라운드 메이킹 교육"
+                data-event-start="2025-07-19T10:00:00"
+                data-event-end="2025-07-19T13:30:00"
+                data-event-location="창업보육센터 2층 교육회의실"
+                data-event-description="태그팀 프로젝트를 위해서 ESP32 / 라즈베리파이 간단한 교육 할 예정 (자세한 것은 추후 공지), 13:30 에는 서울로 출발해야해서 무조건 저때 끝내야함.">
+                구글 캘린더에 추가하기
+            </button>
+        </li>
+        <li class="event-item">
+            <h3>🔥 서버구축 강의 🛠️</h3>
+            <p>📅 2025년 8월 3일 (일)</p>
+            <p>⏰ 오전 10:00 ~ 14:00</p>
+            <p>📍 창업보육센터 2층 교육회의실</p>
+            <p>💡 서버 구축에 필요한 기초적인 강의를 진행 할 예정<br>🌐 AWS, SUPABASE, Firebase, 라즈베리파이 를 이용한 서버 구축 할 예정</p>
+            <button class="add-calendar-btn"
+                data-event-title="서버구축 강의"
+                data-event-start="2025-08-03T10:00:00"
+                data-event-end="2025-08-03T14:00:00"
+                data-event-location="창업보육센터 2층 교육회의실"
+                data-event-description="서버 구축에 필요한 기초적인 강의를 진행 할 예정 / AWS, SUPABASE, Firebase, 라즈베리파이 를 이용한 서버 구축 할 예정">
+                구글 캘린더에 추가하기
+            </button>
+        </li>
+    </ul>
+
+    <script>
+    // 페이지가 로드되면 실행
+    window.onload = function() {
+        // 모든 '캘린더 추가' 버튼을 선택
+        const addCalendarButtons = document.querySelectorAll('.add-calendar-btn');
+
+        // 각 버튼에 클릭 이벤트 리스너를 추가
+        addCalendarButtons.forEach(button => {
+            button.addEventListener('click', handleAddCalendarClick);
+        });
+    };
+
+    /**
+     * '일정 추가' 버튼 클릭 시 실행되는 함수
+     */
+    function handleAddCalendarClick(event) {
+        const button = event.currentTarget;
+        const eventData = {
+            title: button.dataset.eventTitle,
+            startTime: button.dataset.eventStart,
+            endTime: button.dataset.eventEnd,
+            location: button.dataset.eventLocation,
+            details: button.dataset.eventDescription
+        };
+        
+        // PC와 모바일 구분 없이 동일한 함수를 사용
+        openCalendarLink(eventData);
+    }
+
+    /**
+     * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수
+     */
+    function openCalendarLink(eventData) {
+        // 구글 캘린더 URL의 시간 형식(YYYYMMDDTHHMMSSZ)으로 변환하는 함수
+        const formatTimeForUrl = (datetime) => {
+            if (!datetime) return '';
+            // 날짜만 있는 종일 이벤트(YYYY-MM-DD)는 '-'를 제거
+            if (datetime.length === 10) return datetime.replace(/-/g, '');
+            // 시간까지 있는 이벤트(YYYY-MM-DDTHH:mm:ss)는 T, :, - 를 모두 제거
+            return new Date(datetime).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+        };
+        
+        // 종일 이벤트 종료 날짜 처리 (Google URL 규칙에 맞게 +1일)
+        let endDate;
+        if (eventData.startTime.length === 10 && eventData.endTime.length === 10) {
+            const date = new Date(eventData.endTime);
+            date.setDate(date.getDate() + 1);
+            endDate = date.toISOString().split('T')[0].replace(/-/g, '');
+        } else {
+            endDate = formatTimeForUrl(eventData.endTime);
+        }
+
+        const startTime = formatTimeForUrl(eventData.startTime);
+
+        // URL의 각 파라미터는 인코딩 필수
+        const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}`;
+
+        // 새 탭에서 URL 열기
+        window.open(calendarUrl, '_blank');
+    }
+    </script>
+</body>
+</html>
