@@ -190,6 +190,10 @@
             color: #ffffff;
         }
 
+        .add-calendar-btn-right:active {
+            transform: scale(0.98);
+        }
+
         .card:hover {
             transform: translateY(-5px);
         }
@@ -268,7 +272,7 @@
             font-weight: 500;
         }
 
-.footer-card {
+        .footer-card {
             background: linear-gradient(135deg, #e8d5f2 0%, #d9c9e8 100%);
             border: 2px solid #b8a8d8;
             border-radius: 16px;
@@ -294,6 +298,25 @@
         .footer-card a:hover {
             color: #3a2a5a;
             text-decoration: underline;
+        }
+
+        /* 모바일 디바이스 표시 배지 */
+        .device-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(66, 133, 244, 0.9);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            z-index: 1000;
+            display: none;
+        }
+
+        .device-badge.mobile {
+            display: block;
         }
 
         @media (max-width: 768px) {
@@ -513,9 +536,12 @@
     </style>
 </head>
 <body>
+    <!-- 디바이스 표시 배지 (개발 확인용, 필요시 제거 가능) -->
+    <div class="device-badge" id="deviceBadge">📱 모바일</div>
+
     <div class="container">
         <div class="header">
-            <h1>📅 일정 구글 캘린더에 추가하기</h1>
+            <h1>📅 일정 구글 캘린더에 추가하기(2)</h1>
         </div>
 
         <div class="cards-grid" id="eventList"></div>
@@ -865,6 +891,9 @@
 
     // 페이지 로드 시 실행
     window.onload = function() {
+        // 모바일 기기 감지 표시
+        detectDevice();
+        
         const events = parseMarkdown(addCalnderData);
         renderEvents(events);
 
@@ -873,6 +902,21 @@
             button.addEventListener('click', handleAddCalendarClick);
         });
     };
+
+    /**
+     * 모바일/PC 기기 감지 함수
+     */
+    function detectDevice() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const badge = document.getElementById('deviceBadge');
+        
+        if (isMobile) {
+            badge.classList.add('mobile');
+            console.log('📱 모바일 기기 감지됨');
+        } else {
+            console.log('💻 PC 기기 감지됨');
+        }
+    }
 
     /**
      * '일정 추가' 버튼 클릭 시 실행되는 함수
@@ -892,7 +936,7 @@
     }
 
     /**
-     * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수
+     * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수 (모바일/PC 최적화)
      */
     function openCalendarLink(eventData) {
         const formatTimeForUrl = (datetime) => {
@@ -923,9 +967,35 @@
             }
         }
 
-        const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+        // 모바일 기기 감지
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        window.open(calendarUrl, '_blank');
+        if (isMobile) {
+            // 모바일용 구글 캘린더 URL (calendar.google.com 사용)
+            const mobileCalendarUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+            
+            console.log('📱 모바일 캘린더 URL 오픈');
+            
+            // iOS 또는 Android 앱으로 열기 시도
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                // iOS: 모바일 최적화 URL로 열기
+                setTimeout(() => {
+                    window.location.href = mobileCalendarUrl;
+                }, 100);
+            } else if (/Android/.test(navigator.userAgent)) {
+                // Android: 새 탭으로 열기
+                window.open(mobileCalendarUrl, '_blank');
+            } else {
+                // 기타 모바일: 새 탭으로 열기
+                window.open(mobileCalendarUrl, '_blank');
+            }
+        } else {
+            // PC용 구글 캘린더 URL
+            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+            
+            console.log('💻 PC 캘린더 URL 오픈');
+            window.open(calendarUrl, '_blank');
+        }
     }
 
     // 아이콘 호버 효과
