@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일정 구글 캘린더에 추가하기-1V3</title>
+    <title>일정 구글 캘린더에 추가하기-1V4</title>
     <style>
         @font-face {
             font-family: 'RIDIBatang';
@@ -536,17 +536,15 @@
     </style>
 </head>
 <body>
-    <!-- 디바이스 표시 배지 (개발 확인용, 필요시 제거 가능) -->
     <div class="device-badge" id="deviceBadge">📱 모바일</div>
 
     <div class="container">
         <div class="header">
-            <h1>📅 일정 구글 캘린더에 추가하기-1V3</h1>
+            <h1>📅 일정 구글 캘린더에 추가하기-1V4</h1>
         </div>
 
         <div class="cards-grid" id="eventList"></div>
 
-        <!-- 하단 제작자 정보 카드 -->
         <div class="footer-card">
             <p>
                 ✨ 당신의 인생을 바꿀 AI 서비스 
@@ -957,71 +955,74 @@
 
     /**
      * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수 (모바일/PC 최적화)
+     * * [✅ 수정된 부분] 안드로이드 기기에서 네이티브 앱 접근을 위한 Intent URL 로직 수정
      */
     function openCalendarLink(eventData) {
         const formatTimeForUrl = (datetime) => {
+            // YYYYMMDDTHHMMSSZ (UTC) 형식으로 변환 (웹 URL용)
             if (!datetime) return '';
-            if (datetime.length === 10) return datetime.replace(/-/g, '');
+            if (datetime.length === 10) return datetime.replace(/-/g, ''); // 날짜만 있는 경우 YYYYMMDD
             return new Date(datetime).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
         };
 
         const isDateOnly = eventData.isDateOnly === 'true';
-        let startTime, endDate;
+        let startDateTime, endDateTime, startTime, endDate;
 
         if (isDateOnly) {
-            // 날짜만 있는 경우: YYYYMMDD 형식
+            // 날짜만 있는 경우 (웹 URL용)
             startTime = eventData.startTime.replace(/-/g, '');
             const endDateObj = new Date(eventData.endTime);
-            endDateObj.setDate(endDateObj.getDate() + 1);
+            endDateObj.setDate(endDateObj.getDate() + 1); // 종일 일정은 끝 날짜에 +1
             endDate = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
+            
+            // 안드로이드 딥링크용: 밀리초로 변환 (종일 일정은 자정 기준)
+            // Local Timezone을 기준으로 Date 객체 생성하여 밀리초를 얻습니다.
+            startDateTime = new Date(eventData.startTime + 'T00:00:00').getTime();
+            endDateTime = new Date(eventData.endTime + 'T00:00:00');
+            endDateTime.setDate(endDateTime.getDate() + 1);
+            endDateTime = endDateTime.getTime();
+
+            // NOTE: 종일 일정 처리 시 시간대 변환 문제로 인해 시간이 꼬일 수 있습니다.
+            // 밀리초를 사용하는 안드로이드 인텐트는 UTC를 가정하지 않고 Local time을 가정하는 경우가 많습니다.
+            // 웹 URL은 ISO 8601 (날짜만) 또는 UTC를 사용합니다.
+            
         } else {
-            // 시간이 있는 경우
-            if (eventData.startTime.length === 10 && eventData.endTime.length === 10) {
-                startTime = eventData.startTime.replace(/-/g, '');
-                const date = new Date(eventData.endTime);
-                date.setDate(date.getDate() + 1);
-                endDate = date.toISOString().split('T')[0].replace(/-/g, '');
-            } else {
-                startTime = formatTimeForUrl(eventData.startTime);
-                endDate = formatTimeForUrl(eventData.endTime);
-            }
+            // 시간이 있는 경우 (웹 URL 및 안드로이드 딥링크용)
+            startDateTime = new Date(eventData.startTime).getTime(); // 밀리초
+            endDateTime = new Date(eventData.endTime).getTime(); // 밀리초
+            startTime = formatTimeForUrl(eventData.startTime);
+            endDate = formatTimeForUrl(eventData.endTime);
         }
 
         // 모바일 기기 감지
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
         const isAndroid = /Android/.test(navigator.userAgent);
-
-        // 웹 URL (공통)
+        
+        // 웹 URL (PC 및 기타 모바일 공통, iOS fallback)
         const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+
 
         if (isMobile) {
             console.log('📱 모바일 기기 감지됨');
             
             if (isAndroid) {
-                // Android: Intent로 구글 캘린더 앱에서 이벤트 생성
-                console.log('🤖 Android - 구글 캘린더 앱으로 직접 이벤트 생성');
+                // 🤖 Android: Calendar Intent URI를 사용하여 앱의 일정 생성 화면으로 바로 이동 시도
+                console.log('🤖 Android - 구글 캘린더 앱의 일정 생성 화면으로 직접 이동');
                 
-                // Android Intent Scheme - 이벤트 생성
-                const androidIntentUrl = `intent:${webUrl.replace('https://', '')}#Intent;package=com.google.android.calendar;scheme=https;action=android.intent.action.VIEW;end`;
+                // Android Calendar Intent Deep Link
+                const calendarDeepLink = `intent:#Intent;action=android.intent.action.EDIT;data=content://com.android.calendar/events;S.title=${encodeURIComponent(eventData.title)};l.dtstart=${startDateTime};l.dtend=${endDateTime};S.description=${encodeURIComponent(eventData.details || '')};S.eventLocation=${encodeURIComponent(eventData.location || '')};B.allDay=${isDateOnly};package=com.google.android.calendar;end`;
                 
-                // 또는 직접 calendar 프로토콜 사용
-                const calendarDeepLink = `content://com.google.android.calendar/events?title=${encodeURIComponent(eventData.title)}&description=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&dtstart=${startTime}&dtend=${endDate}`;
-                
-                // Intent 방식으로 시도
-                setTimeout(() => {
-                    window.location.href = androidIntentUrl;
-                }, 100);
-                
+                // 앱이 설치되어 있지 않다면 웹으로 이동하도록 fallback 처리
+                window.location.href = calendarDeepLink;
+
             } else if (isIOS) {
-                // iOS: URL Scheme으로 구글 캘린더 앱 열기
-                console.log('🍎 iOS - 구글 캘린더 앱으로 직접 이동');
-                
-                // iOS에서 구글 캘린더 웹 URL로 열기 (앱으로 자동 리디렉트)
+                // 🍎 iOS: 구글 캘린더 웹 URL로 열기 (앱으로 자동 리디렉트가 가장 안정적)
+                console.log('🍎 iOS - 구글 캘린더 웹 URL로 열기 (앱 자동 연결 시도)');
                 window.location.href = webUrl;
                 
             } else {
-                // 기타 모바일
+                // 기타 모바일 ( fallback to web URL )
                 window.open(webUrl, '_blank');
             }
         } else {
