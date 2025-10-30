@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일정 구글 캘린더에 추가하기-1V2</title>
+    <title>일정 구글 캘린더에 추가하기-1V3</title>
     <style>
         @font-face {
             font-family: 'RIDIBatang';
@@ -536,17 +536,15 @@
     </style>
 </head>
 <body>
-    <!-- 디바이스 표시 배지 (개발 확인용, 필요시 제거 가능) -->
     <div class="device-badge" id="deviceBadge">📱 모바일</div>
 
     <div class="container">
         <div class="header">
-            <h1>📅 일정 구글 캘린더에 추가하기</h1>
+            <h1>📅 일정 구글 캘린더에 추가하기-1V3</h1>
         </div>
 
         <div class="cards-grid" id="eventList"></div>
 
-        <!-- 하단 제작자 정보 카드 -->
         <div class="footer-card">
             <p>
                 ✨ 당신의 인생을 바꿀 AI 서비스 
@@ -587,45 +585,6 @@
 참석자 : 
 위치 : 수원컨벤션센터, 대한민국 경기도 수원시
 설명 : "경기도 청년참여기구 활동 사례분석을 통한 활성화 방안" 토론회
-
-### 투자자 미팅
-제목 : 투자자 미팅
-날짜 : 2025-08-05
-시작-시간 : 2025-08-05T10:00:00
-끝-시간 : 2025-08-05T11:30:00
-참석자 : 이인규 , 최호준, 강명철
-위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1731
-설명 : 투자 유치 전략 논의 및 계획 수립
-
-
-### 팀 빌딩 워크숍
-제목 : 팀 빌딩 워크숍
-날짜 : 2025-08-22
-시작-날짜 : 2025-08-22
-끝-날짜 : 2025-08-22
-참석자 : 이인규, 최호준, 강명철
-위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1732
-설명 : 팀워크 향상을 위한 다양한 활동과 소통 시간
-
-
-### 신제품 런칭 미팅
-제목 : 신제품 런칭 미팅
-날짜 : 2025-08-28
-시작-날짜 : 2025-08-28
-끝-날짜 : 2025-09-02
-참석자 : 이인규, 최호준, 강명철
-위치 : 루나폴, 대한민국 제주특별자치도 서귀포시 특별자치도, 안덕면 일주서로 1836
-설명 : 신제품 출시 관련 준비사항 검토
-
-
-### 사업계획 발표
-제목 : 사업계획 발표
-날짜 : 2025-08-28
-시작-날짜 : 2025-08-28
-끝-날짜 : 2025-10-30
-참석자 : 이인규, 최호준, 강명철
-위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1731
-설명 : 향후 1년 사업 계획 발표
 `;
 
     // 마크다운 파싱 함수
@@ -996,11 +955,14 @@
 
     /**
      * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수 (모바일/PC 최적화)
+     * * [수정 완료] Android Intent 대신 Universal Link(웹 URL) 방식으로 통일하여 호환성 강화
      */
     function openCalendarLink(eventData) {
         const formatTimeForUrl = (datetime) => {
+            // YYYYMMDDTHHMMSSZ (UTC) 형식 또는 YYYYMMDD (웹 URL용)
             if (!datetime) return '';
-            if (datetime.length === 10) return datetime.replace(/-/g, '');
+            if (datetime.length === 10) return datetime.replace(/-/g, ''); // 날짜만 있는 경우 YYYYMMDD
+            // 날짜/시간이 있는 경우 ISO 8601 UTC Z 포맷으로 변환
             return new Date(datetime).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
         };
 
@@ -1008,73 +970,33 @@
         let startTime, endDate;
 
         if (isDateOnly) {
-            // 날짜만 있는 경우: YYYYMMDD 형식
+            // 날짜만 있는 경우 (YYYYMMDD)
             startTime = eventData.startTime.replace(/-/g, '');
             const endDateObj = new Date(eventData.endTime);
-            endDateObj.setDate(endDateObj.getDate() + 1);
+            endDateObj.setDate(endDateObj.getDate() + 1); // 종일 일정은 끝 날짜에 +1 (구글 캘린더 웹 형식)
             endDate = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
+            
         } else {
-            // 시간이 있는 경우
-            if (eventData.startTime.length === 10 && eventData.endTime.length === 10) {
-                startTime = eventData.startTime.replace(/-/g, '');
-                const date = new Date(eventData.endTime);
-                date.setDate(date.getDate() + 1);
-                endDate = date.toISOString().split('T')[0].replace(/-/g, '');
-            } else {
-                startTime = formatTimeForUrl(eventData.startTime);
-                endDate = formatTimeForUrl(eventData.endTime);
-            }
+            // 시간이 있는 경우 (YYYYMMDDTHHMMSSZ)
+            startTime = formatTimeForUrl(eventData.startTime);
+            endDate = formatTimeForUrl(eventData.endTime);
         }
 
         // 모바일 기기 감지
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        // Universal Link 역할을 하는 웹 URL (모든 모바일 및 PC에서 사용)
+        // 안드로이드에서 앱이 설치되어 있으면 자동으로 앱을 실행하고, 아니면 웹으로 이동합니다.
+        const calendarWebUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
 
         if (isMobile) {
-            console.log('📱 모바일 기기 감지됨');
+            console.log('📱 모바일 기기 감지됨. Universal Link 방식으로 시도.');
             
-            if (isIOS) {
-                // iOS: 구글 캘린더 앱 딥링크 시도
-                const iosDeepLink = `googlechrome://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
-                const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
-                
-                console.log('🍎 iOS 구글 캘린더 앱 시도');
-                
-                // iOS 앱이 없으면 웹으로 폴백
-                setTimeout(() => {
-                    window.location.href = webUrl;
-                }, 1000);
-                
-                // 앱 딥링크 시도
-                window.location.href = iosDeepLink;
-                
-            } else if (isAndroid) {
-                // Android: 구글 캘린더 앱 인텐트 (intent scheme)
-                const androidDeepLink = `intent://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko#Intent;scheme=https;package=com.google.android.calendar;action=android.intent.action.VIEW;end`;
-                
-                // 직접 앱 패키지 실행
-                const packageIntent = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.google.android.calendar;end`;
-                
-                console.log('🤖 Android 구글 캘린더 앱 시도');
-                
-                // 1. 구글 캘린더 앱으로 직접 이벤트 추가 시도
-                try {
-                    window.location.href = androidDeepLink;
-                } catch(e) {
-                    console.log('딥링크 실패, 웹으로 연결');
-                    const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
-                    setTimeout(() => {
-                        window.location.href = webUrl;
-                    }, 500);
-                }
-            } else {
-                // 기타 모바일: 웹 URL 사용
-                const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
-                window.open(webUrl, '_blank');
-            }
+            // 모바일 환경에서는 현재 창에서 웹 URL을 열어 앱 자동 연결을 유도합니다.
+            window.location.href = calendarWebUrl;
+
         } else {
-            // PC용 구글 캘린더 URL
+            // PC 환경에서는 새 탭에서 URL을 엽니다.
             const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
             
             console.log('💻 PC 캘린더 URL 오픈');
