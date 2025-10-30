@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일정 구글 캘린더에 추가하기-1V4</title>
+    <title>일정 구글 캘린더에 추가하기-1V5</title>
     <style>
         @font-face {
             font-family: 'RIDIBatang';
@@ -300,7 +300,7 @@
             text-decoration: underline;
         }
 
-        /* 모바일 디바이스 표시 배지 (개발 확인용) */
+        /* 모바일 디바이스 표시 배지 */
         .device-badge {
             position: fixed;
             top: 10px;
@@ -536,15 +536,17 @@
     </style>
 </head>
 <body>
+    <!-- 디바이스 표시 배지 (개발 확인용, 필요시 제거 가능) -->
     <div class="device-badge" id="deviceBadge">📱 모바일</div>
 
     <div class="container">
         <div class="header">
-            <h1>📅 일정 구글 캘린더에 추가하기-1V4</h1>
+            <h1>📅 일정 구글 캘린더에 추가하기-1V5</h1>
         </div>
 
         <div class="cards-grid" id="eventList"></div>
 
+        <!-- 하단 제작자 정보 카드 -->
         <div class="footer-card">
             <p>
                 ✨ 당신의 인생을 바꿀 AI 서비스 
@@ -585,6 +587,45 @@
 참석자 : 
 위치 : 수원컨벤션센터, 대한민국 경기도 수원시
 설명 : "경기도 청년참여기구 활동 사례분석을 통한 활성화 방안" 토론회
+
+### 투자자 미팅
+제목 : 투자자 미팅
+날짜 : 2025-08-05
+시작-시간 : 2025-08-05T10:00:00
+끝-시간 : 2025-08-05T11:30:00
+참석자 : 이인규 , 최호준, 강명철
+위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1731
+설명 : 투자 유치 전략 논의 및 계획 수립
+
+
+### 팀 빌딩 워크숍
+제목 : 팀 빌딩 워크숍
+날짜 : 2025-08-22
+시작-날짜 : 2025-08-22
+끝-날짜 : 2025-08-22
+참석자 : 이인규, 최호준, 강명철
+위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1732
+설명 : 팀워크 향상을 위한 다양한 활동과 소통 시간
+
+
+### 신제품 런칭 미팅
+제목 : 신제품 런칭 미팅
+날짜 : 2025-08-28
+시작-날짜 : 2025-08-28
+끝-날짜 : 2025-09-02
+참석자 : 이인규, 최호준, 강명철
+위치 : 루나폴, 대한민국 제주특별자치도 서귀포시 특별자치도, 안덕면 일주서로 1836
+설명 : 신제품 출시 관련 준비사항 검토
+
+
+### 사업계획 발표
+제목 : 사업계획 발표
+날짜 : 2025-08-28
+시작-날짜 : 2025-08-28
+끝-날짜 : 2025-10-30
+참석자 : 이인규, 최호준, 강명철
+위치 : 경희대학교 국제캠퍼스, 대한민국 경기도 용인시 기흥구 덕영대로 1731
+설명 : 향후 1년 사업 계획 발표
 `;
 
     // 마크다운 파싱 함수
@@ -955,14 +996,11 @@
 
     /**
      * 구글 캘린더 URL을 생성하여 새 탭으로 여는 함수 (모바일/PC 최적화)
-     * * [최종 수정] 모바일에서 'u/0/r/' 경로를 제거하여 모바일 레이아웃 유도
      */
     function openCalendarLink(eventData) {
         const formatTimeForUrl = (datetime) => {
-            // YYYYMMDDTHHMMSSZ (UTC) 형식 또는 YYYYMMDD (웹 URL용)
             if (!datetime) return '';
-            if (datetime.length === 10) return datetime.replace(/-/g, ''); // 날짜만 있는 경우 YYYYMMDD
-            // 날짜/시간이 있는 경우 ISO 8601 UTC Z 포맷으로 변환
+            if (datetime.length === 10) return datetime.replace(/-/g, '');
             return new Date(datetime).toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
         };
 
@@ -970,39 +1008,49 @@
         let startTime, endDate;
 
         if (isDateOnly) {
-            // 날짜만 있는 경우 (YYYYMMDD)
+            // 날짜만 있는 경우: YYYYMMDD 형식
             startTime = eventData.startTime.replace(/-/g, '');
             const endDateObj = new Date(eventData.endTime);
-            endDateObj.setDate(endDateObj.getDate() + 1); // 종일 일정은 끝 날짜에 +1 (구글 캘린더 웹 형식)
+            endDateObj.setDate(endDateObj.getDate() + 1);
             endDate = endDateObj.toISOString().split('T')[0].replace(/-/g, '');
-            
         } else {
-            // 시간이 있는 경우 (YYYYMMDDTHHMMSSZ)
-            startTime = formatTimeForUrl(eventData.startTime);
-            endDate = formatTimeForUrl(eventData.endTime);
+            // 시간이 있는 경우
+            if (eventData.startTime.length === 10 && eventData.endTime.length === 10) {
+                startTime = eventData.startTime.replace(/-/g, '');
+                const date = new Date(eventData.endTime);
+                date.setDate(date.getDate() + 1);
+                endDate = date.toISOString().split('T')[0].replace(/-/g, '');
+            } else {
+                startTime = formatTimeForUrl(eventData.startTime);
+                endDate = formatTimeForUrl(eventData.endTime);
+            }
         }
 
         // 모바일 기기 감지
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Universal Link 역할을 하는 웹 URL (모든 모바일 및 PC에서 사용)
-
-        // **[✅ 모바일 최적화 URL]** 모바일 기기에서는 'u/0/r/' 경로를 제거하여 모바일 레이아웃 유도
-        const mobileCalendarWebUrl = `https://calendar.google.com/calendar/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
-
-        // **[✅ PC URL]** PC 기기에서는 전통적인 템플릿 경로를 사용
-        const pcCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
 
         if (isMobile) {
-            console.log('📱 모바일 기기 감지됨. 모바일 최적화 URL로 이동 시도.');
+            // 모바일용 구글 캘린더 URL (calendar.google.com 사용)
+            const mobileCalendarUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
             
-            // 모바일 최적화 경로를 현재 창에서 열어 앱 자동 연결 및 모바일 레이아웃 유도
-            window.location.href = mobileCalendarWebUrl;
-
+            console.log('📱 모바일 캘린더 URL 오픈');
+            
+            // iOS 또는 Android 앱으로 열기 시도
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                // iOS: 모바일 최적화 URL로 열기
+                setTimeout(() => {
+                    window.location.href = mobileCalendarUrl;
+                }, 100);
+            } else {
+                // Android: 새 탭으로 열기
+                window.open(mobileCalendarUrl, '_blank');
+            }7855
         } else {
+            // PC용 구글 캘린더 URL
+            const calendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+            
             console.log('💻 PC 캘린더 URL 오픈');
-            // PC용 URL을 새 탭에서 열기
-            window.open(pcCalendarUrl, '_blank');
+            window.open(calendarUrl, '_blank');
         }
     }
 
@@ -1019,4 +1067,4 @@
     });
     </script>
 </body>
-</html>
+</html>968
