@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>일정 구글 캘린더에 추가하기</title>
+    <title>일정 구글 캘린더에 추가하기-1V2</title>
     <style>
         @font-face {
             font-family: 'RIDIBatang';
@@ -541,7 +541,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>📅 일정 구글 캘린더에 추가하기-1V1</h1>
+            <h1>📅 일정 구글 캘린더에 추가하기</h1>
         </div>
 
         <div class="cards-grid" id="eventList"></div>
@@ -587,6 +587,7 @@
 참석자 : 
 위치 : 수원컨벤션센터, 대한민국 경기도 수원시
 설명 : "경기도 청년참여기구 활동 사례분석을 통한 활성화 방안" 토론회
+
 `;
 
     // 마크다운 파싱 함수
@@ -609,6 +610,7 @@
                 if (key === '날짜') event.date = value;
                 if (key === '시작-시간') event.startTime = value;
                 if (key === '끝-시간') event.endTime = value;
+                if (key === '날짜') event.startDate = value;  // '날짜' 필드도 startDate로 처리
                 if (key === '시작-날짜') event.startDate = value;
                 if (key === '끝-날짜') event.endDate = value;
                 if (key === '참석자') event.attendees = value;
@@ -636,7 +638,7 @@
         const eventList = document.getElementById('eventList');
         eventList.innerHTML = '';
 
-        events.forEach(event => {
+        events.forEach((event, index) => {
             // 날짜/시간 정보 확인
             const isDateOnly = event.startDate && event.endDate;
             const isTimeInfo = event.startTime && event.endTime;
@@ -685,6 +687,9 @@
                 dateRangeDisplay = `${formattedDate} ~ ${formattedEndDate}`;
             }
 
+            // 고유한 ID 생성 (인덱스 포함)
+            const calendarId = `calendar-${startDate}-${index}`;
+
             eventItem.innerHTML = `
                 <div class="card-left">
                     <div class="card-header">
@@ -706,7 +711,7 @@
                     </div>
                 </div>
                 <div class="card-right">
-                    <div class="mini-calendar" id="calendar-${startDate}"></div>
+                    <div class="mini-calendar" id="${calendarId}"></div>
                     <button class="add-calendar-btn-right"
                         data-event-title="${event.title}"
                         data-event-start="${isTimeInfo ? event.startTime : startDate}"
@@ -721,22 +726,25 @@
 
             eventList.appendChild(eventItem);
 
-            // 달력 그리기
-            generateMiniCalendar(startDate, endDate, dateRangeDisplay, timeDisplay);
+            // DOM 요소가 추가된 후 달력 그리기
+            setTimeout(() => {
+                generateMiniCalendar(calendarId, startDate, endDate, dateRangeDisplay, timeDisplay);
+            }, 0);
         });
     }
 
-    // 미니 달력 생성 함수
-    function generateMiniCalendar(dateString, endDateString, dateRangeDisplay, timeDisplay) {
-        const date = new Date(dateString + 'T00:00:00');
-        const endDate = new Date(endDateString + 'T00:00:00');
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const startDay = date.getDate();
-        const endDay = endDate.getDate();
+    // 미니 달력 생성 함수 (calendarId 파라미터 추가)
+    function generateMiniCalendar(calendarId, dateString, endDateString, dateRangeDisplay, timeDisplay) {
+        // UTC 타임존 이슈 해결: Z를 추가하여 정확한 날짜 파싱
+        const date = new Date(dateString + 'T00:00:00Z');
+        const endDate = new Date(endDateString + 'T00:00:00Z');
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth();
+        const startDay = date.getUTCDate();
+        const endDay = endDate.getUTCDate();
 
         // 달이 넘어가는지 확인
-        const isMultiMonth = date.getMonth() !== endDate.getMonth() || date.getFullYear() !== endDate.getFullYear();
+        const isMultiMonth = date.getUTCMonth() !== endDate.getUTCMonth() || date.getUTCFullYear() !== endDate.getUTCFullYear();
 
         let html = '';
 
@@ -776,11 +784,18 @@
             html += '</div>';
 
             // 중간 달들
-            let currentDate = new Date(year, month + 1, 1);
-            while (currentDate.getFullYear() < endDate.getFullYear() || 
-                   (currentDate.getFullYear() === endDate.getFullYear() && currentDate.getMonth() < endDate.getMonth())) {
-                const currentYear = currentDate.getFullYear();
-                const currentMonth = currentDate.getMonth();
+            let currentMonth = month + 1;
+            let currentYear = year;
+            
+            while (currentYear < endDate.getUTCFullYear() || 
+                   (currentYear === endDate.getUTCFullYear() && currentMonth < endDate.getUTCMonth())) {
+                
+                // 12월을 넘으면 다음 연도로 이동
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                
                 const currentFirstDay = new Date(currentYear, currentMonth, 1).getDay();
                 const currentDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
@@ -808,14 +823,14 @@
                 }
 
                 html += '</div>';
-                currentDate.setMonth(currentDate.getMonth() + 1);
+                currentMonth++;
             }
 
             // 끝나는 달
-            const endFirstDay = new Date(endDate.getFullYear(), endDate.getMonth(), 1).getDay();
-            const endDaysInMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
+            const endFirstDay = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), 1).getDay();
+            const endDaysInMonth = new Date(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, 0).getDate();
 
-            html += `<div class="calendar-header" style="margin-top: 12px;">${endDate.getFullYear()}년 ${endDate.getMonth() + 1}월</div>`;
+            html += `<div class="calendar-header" style="margin-top: 12px;">${endDate.getUTCFullYear()}년 ${endDate.getUTCMonth() + 1}월</div>`;
             html += `<div class="calendar-weekdays">
                 <div class="weekday">일</div>
                 <div class="weekday">월</div>
@@ -844,7 +859,7 @@
 
             html += '</div>';
             
-            html += `<div class="calendar-multi-month">📍 ${endDate.getMonth() + 1}월까지 진행</div>`;
+            html += `<div class="calendar-multi-month">📍 ${endDate.getUTCMonth() + 1}월까지 진행</div>`;
         } else {
             // 단일 월
             const firstDay = new Date(year, month, 1).getDay();
@@ -886,7 +901,13 @@
         html += `<div class="calendar-info">${dateInfo}</div>`;
         html += `<div class="calendar-time">⏰ ${timeDisplay}</div>`;
 
-        document.getElementById(`calendar-${dateString}`).innerHTML = html;
+        const calendarElement = document.getElementById(calendarId);
+        if (!calendarElement) {
+            console.error(`캘린더 요소를 찾을 수 없습니다: ${calendarId}`);
+            console.log('가능한 ID들:', Array.from(document.querySelectorAll('[id*="calendar"]')).map(el => el.id));
+            return;
+        }
+        calendarElement.innerHTML = html;
     }
 
     // 페이지 로드 시 실행
@@ -969,25 +990,50 @@
 
         // 모바일 기기 감지
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
 
         if (isMobile) {
-            // 모바일용 구글 캘린더 URL (calendar.google.com 사용)
-            const mobileCalendarUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+            console.log('📱 모바일 기기 감지됨');
             
-            console.log('📱 모바일 캘린더 URL 오픈');
-            
-            // iOS 또는 Android 앱으로 열기 시도
-            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-                // iOS: 모바일 최적화 URL로 열기
+            if (isIOS) {
+                // iOS: 구글 캘린더 앱 딥링크 시도
+                const iosDeepLink = `googlechrome://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+                const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+                
+                console.log('🍎 iOS 구글 캘린더 앱 시도');
+                
+                // iOS 앱이 없으면 웹으로 폴백
                 setTimeout(() => {
-                    window.location.href = mobileCalendarUrl;
-                }, 100);
-            } else if (/Android/.test(navigator.userAgent)) {
-                // Android: 새 탭으로 열기
-                window.open(mobileCalendarUrl, '_blank');
+                    window.location.href = webUrl;
+                }, 1000);
+                
+                // 앱 딥링크 시도
+                window.location.href = iosDeepLink;
+                
+            } else if (isAndroid) {
+                // Android: 구글 캘린더 앱 인텐트 (intent scheme)
+                const androidDeepLink = `intent://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko#Intent;scheme=https;package=com.google.android.calendar;action=android.intent.action.VIEW;end`;
+                
+                // 직접 앱 패키지 실행
+                const packageIntent = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.google.android.calendar;end`;
+                
+                console.log('🤖 Android 구글 캘린더 앱 시도');
+                
+                // 1. 구글 캘린더 앱으로 직접 이벤트 추가 시도
+                try {
+                    window.location.href = androidDeepLink;
+                } catch(e) {
+                    console.log('딥링크 실패, 웹으로 연결');
+                    const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+                    setTimeout(() => {
+                        window.location.href = webUrl;
+                    }, 500);
+                }
             } else {
-                // 기타 모바일: 새 탭으로 열기
-                window.open(mobileCalendarUrl, '_blank');
+                // 기타 모바일: 웹 URL 사용
+                const webUrl = `https://calendar.google.com/calendar/u/0/r/eventedit?text=${encodeURIComponent(eventData.title)}&dates=${startTime}/${endDate}&details=${encodeURIComponent(eventData.details || '')}&location=${encodeURIComponent(eventData.location || '')}&hl=ko`;
+                window.open(webUrl, '_blank');
             }
         } else {
             // PC용 구글 캘린더 URL
